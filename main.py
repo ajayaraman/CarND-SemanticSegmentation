@@ -33,7 +33,7 @@ def load_vgg(sess, vgg_path):
     vgg_layer4_out_tensor_name = 'layer4_out:0'
     vgg_layer7_out_tensor_name = 'layer7_out:0'
 
-    tf.saved_model.loader.load(vgg_path, [vgg_tag], [vgg_tag])
+    tf.saved_model.loader.load(sess, [vgg_tag], vgg_path)
     graph = tf.get_default_graph()
     image_input = graph.get_tensor_by_name(vgg_input_tensor_name)
     keep_prob = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
@@ -55,20 +55,24 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     """
     # TODO: Implement function
     l2reg = tf.contrib.layers.l2_regularizer(1e-4)
-    conv_fc = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding = 'same', 
+    conv_fc7 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, strides = (1,1), padding = 'same', 
                               kernel_regularizer = l2reg, bias_regularizer=l2reg)
     #2x upsample vgg layer 7                          
-    output = tf.layers.conv2d_transpose(conv_fc, num_classes, 4, strides = (2,2), padding = 'same', 
+    output = tf.layers.conv2d_transpose(conv_fc7, num_classes, 4, 2, padding = 'same', 
                               kernel_regularizer = l2reg, bias_regularizer = l2reg)
 
     #Add skip connections to pool4
-    output = tf.add(output, vgg_layer4_out)
+    pool4 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, strides = (1,1), padding = 'same', 
+                              kernel_regularizer = l2reg, bias_regularizer=l2reg)
+    output = tf.add(output, pool4)
 
     #2x upsample output (i.e. vgg layer 7 is now upsampled by 4 times)
     output = tf.layers.conv2d_transpose(output, num_classes, 4, strides=(2, 2), padding='same',
                                        kernel_regularizer = l2reg, bias_regularizer = l2reg)
 
     #Add skip connections to pool3
+    pool3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, strides = (1,1), padding = 'same', 
+                              kernel_regularizer = l2reg, bias_regularizer=l2reg)
     output = tf.add(output, pool3)
 
     #8x upsample                                
@@ -90,7 +94,7 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     """
     # TODO: Implement function
     logits = tf.reshape(nn_last_layer, (-1, num_classes))
-    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, correct_label))
+    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels = correct_label, logits = logits))
     train_op = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy_loss)
     return logits, train_op, cross_entropy_loss
 tests.test_optimize(optimize)
@@ -113,18 +117,19 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     """
     # TODO: Implement function
 
-    batch_gen = get_batches_fn(batch_size)
+    init_op = tf.global_variables_initializer()
+    sess.run(init_op)
+
+    print_every = 10
 
     for epoch in range(epochs):
-        try:
-            image, gtruth = batch_gen.next()
+        print_iter = 0
+        for image, gtruth in get_batches_fn(batch_size):
             _, loss = sess.run([train_op, cross_entropy_loss], 
-                            feed_dict = { input_image: image, correct_label : gtruth, keep_prob : 0.7, 
-                            learning_rate : 1e-3 })
-            print("epoch: " + epoch + " loss : {:04.3f}".format(loss))
-        except StopIteration:
-            pass
-        
+                            feed_dict = { input_image: image, correct_label : gtruth, keep_prob : 0.7})
+            print_iter += 1
+            if print_iter % print_every == 0:
+                print("epoch: {:3d}, iteration: {:4d}, loss: {:04.4f}".format(epoch, print_iter, loss))
 tests.test_train_nn(train_nn)
 
 
@@ -144,23 +149,25 @@ def run():
 
     epochs = 5
     learning_rate = 1e-3
-    batch_size = 32
+    batch_size = 4
 
     with tf.Session() as sess:
         # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
         get_batches_fn = helper.gen_batch_function(os.path.join(data_dir, 'data_road/training'), image_shape)
-
+        
         # OPTIONAL: Augment Images for better results
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # TODO: Build NN using load_vgg, layers, and optimize function
         image_input, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess, vgg_path)
-
-        # TODO: Train NN using the train_nn function
+        nn_last_layer = layers(layer3_out, layer4_out, layer7_out, num_classes)
+        label_shape = (None,) + image_shape + (num_classes,)
+        correct_label = tf.placeholder(tf.float32, shape = label_shape, name = 'correct_label')
         logits, train_op, cross_entropy_loss = optimize(nn_last_layer, correct_label, learning_rate, num_classes)
-
+    
+        # TODO: Train NN using the train_nn function
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, image_input,
              correct_label, keep_prob, learning_rate)
         # TODO: Save inference data using helper.save_inference_samples
