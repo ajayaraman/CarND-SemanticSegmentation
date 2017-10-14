@@ -35,10 +35,10 @@ Here are some good results from the segmentation
 
 Here are some cases where the segmentation results need improvement
 
-In this result image there is a small section of the road in the middle which was not labeled as "road"
+here's an example where the window of a vehicle is labled "road"
 ![run4](runs/uu_000096.png)
 
-here's an example where the window of a vehicle is labled "road"
+In this result image there is a small section of the road in the middle which was not labeled as "road"
 ![run2](runs/uu_000094.png)
 
 ### Conclusion
