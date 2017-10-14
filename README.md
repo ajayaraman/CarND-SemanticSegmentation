@@ -1,36 +1,52 @@
 # Semantic Segmentation
+
 ### Introduction
-In this project, you'll label the pixels of a road in images using a Fully Convolutional Network (FCN).
+In this project, we'll label the pixels of a road in images using a Fully Convolutional Network (FCN). In particular we will implement the [FCN-8 architecture](https://arxiv.org/pdf/1605.06211.pdf). The ground truth for this dataset comes from the Kitti Road Detection dataset. 
 
-### Setup
-##### Frameworks and Packages
-Make sure you have the following is installed:
- - [Python 3](https://www.python.org/)
- - [TensorFlow](https://www.tensorflow.org/)
- - [NumPy](http://www.numpy.org/)
- - [SciPy](https://www.scipy.org/)
-##### Dataset
-Download the [Kitti Road dataset](http://www.cvlibs.net/datasets/kitti/eval_road.php) from [here](http://www.cvlibs.net/download.php?file=data_road.zip).  Extract the dataset in the `data` folder.  This will create the folder `data_road` with all the training a test images.
+### Setup 
 
-### Start
-##### Implement
-Implement the code in the `main.py` module indicated by the "TODO" comments.
-The comments indicated with "OPTIONAL" tag are not required to complete.
-##### Run
-Run the following command to run the project:
-```
-python main.py
-```
-**Note** If running this in Jupyter Notebook system messages, such as those regarding test status, may appear in the terminal rather than the notebook.
+For instructions on setup please refer to this [link](https://github.com/udacity/CarND-Semantic-Segmentation). 
 
-### Submission
-1. Ensure you've passed all the unit tests.
-2. Ensure you pass all points on [the rubric](https://review.udacity.com/#!/rubrics/989/view).
-3. Submit the following in a zip file.
- - `helper.py`
- - `main.py`
- - `project_tests.py`
- - Newest inference images from `runs` folder  (**all images from the most recent run**)
- 
- ## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
+### How to run
+
+To run the training and inference use this script. This does require a good GPU for faster runs.
+
+``` python main.py ```
+
+### Model Architecture
+
+The FCN-8 model architecture is made up of 2 parts as seen below
+
+![fcn8 arch](https://raw.githubusercontent.com/sunshineatnoon/Paper-Collection/master/images/FCN1.png)
+
+An image encoder and an image decoder network. To be able to build convolutional encoder decoder networks from scratch takes a lot of training examples. In this case we can reduce the time it takes to train such networks and get away with a lot less training examples by using a pre-trained conv-net for the encoder. In this project we will load the popular [VGG-16](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=3&cad=rja&uact=8&ved=0ahUKEwiXt4Kiw_DWAhVlzIMKHX3WBckQFgg1MAI&url=https%3A%2F%2Farxiv.org%2Fabs%2F1409.1556&usg=AOvVaw17ak86ejVzNlyA2N-WpWmZ) model from research.
+
+The FCN8 decoder simply requires projecting layers from the encoder using 1x1 convolutions and adding skip connections from intermediate layers to the output. Thus the final resulting image has the same number of channels as the target segmentation image, which in this case is 2, 1 channel for the label "road" and 1 channel for the label "not road".
+
+### Results
+
+Here are some good results from the segmentation
+
+![run1](runs/umm_000038.png)
+
+![run2](runs/um_000021.png)
+
+![run3](runs/umm_000010.png)
+
+Here are some cases where the segmentation results need improvement
+
+In this result image there is a small section of the road in the middle which was not labeled as "road"
+![run4](runs/uu_000096.png)
+
+here's an example where the window of a vehicle is labled "road"
+![run2](runs/uu_000094.png)
+
+### Conclusion
+
+Overall, the semantic segmentation results are very good and the FCN-8 encoder decoder architecture implementation and training for this project is a success.
+
+### Future scope for improvement
+
+Image Augmentation can be used to ensure that the network sees more samples. The types of augmentation that can be applied are flipping of the image vertically and horizontally, darkening/brightening of the images, zoom and crop. Zoom and crop may be a little involved since the ground truth will also need zooming and cropping to stay in sync. However flipping and brightness changes should be relatively straightforward to implement for this project in the ```get_batches_fn```.
+
+Finally a newer architecture called [Tiramisu](https://arxiv.org/abs/1611.09326) networks show a lot of promise in achieving fast and more accurate semantic segmentation while at the same time requiring a lot fewer weights to train and store for inference. This is certainly a network architecture worth exploring.
