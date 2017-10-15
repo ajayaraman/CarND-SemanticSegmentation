@@ -132,7 +132,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     init_op = tf.global_variables_initializer()
     sess.run(init_op)
 
-    print_every = 2
+    print_every = 10
 
     for epoch in range(epochs):
         print_iter = 0
@@ -159,9 +159,9 @@ def run():
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
 
-    epochs = 50 
+    epochs = 30 
     learning_rate = 1e-3
-    batch_size = 32
+    batch_size = 5
 
     with tf.Session() as sess:
         # Path to vgg model
