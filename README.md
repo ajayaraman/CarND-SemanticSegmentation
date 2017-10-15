@@ -33,12 +33,8 @@ Here are some good results from the segmentation
 
 ![run3](runs/umm_000010.png)
 
-Here are some cases where the segmentation results need improvement
-
-here's an example where the window of a vehicle is labled "road"
 ![run4](runs/uu_000096.png)
 
-In this result image there is a small section of the road in the middle which was not labeled as "road"
 ![run2](runs/uu_000094.png)
 
 ### Conclusion
